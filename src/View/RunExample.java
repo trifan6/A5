@@ -1,6 +1,7 @@
 package View;
 
 import Controller.Controller;
+import Exceptions.MyException;
 
 public class RunExample extends Command
 {
@@ -19,9 +20,13 @@ public class RunExample extends Command
         {
             controller.allStep();
         }
+        catch (MyException e)
+        {
+            System.out.println("Runtime error:"+e.getMessage());
+        }
         catch (Exception e)
         {
-            System.out.println("Execution error:"+e.getMessage());
+            System.out.println("Unexpected error:"+e.getMessage());
         }
     }
 }

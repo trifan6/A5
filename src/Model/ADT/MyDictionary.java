@@ -1,5 +1,7 @@
 package Model.ADT;
 
+import Model.PrgState;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -56,5 +58,17 @@ public class MyDictionary<K, V> implements MyIDictionary<K, V>
     public String toString()
     {
         return this.dict.toString();
+    }
+
+    @Override
+    public MyIDictionary<K, V> deepCopy()
+    {
+        MyIDictionary<K, V> toReturn = new MyDictionary<K, V>();
+
+        for (K key : this.dict.keySet())
+        {
+            toReturn.put(key, this.dict.get(key));
+        }
+        return toReturn;
     }
 }

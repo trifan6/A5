@@ -71,7 +71,7 @@ public class ReadFileStmt implements IStmt
         {
             throw new MyException("readFile: IO error while reading file " + sVal.getVal() + ": " + e.getMessage());
         }
-        return state;
+        return null;
     }
 
     @Override

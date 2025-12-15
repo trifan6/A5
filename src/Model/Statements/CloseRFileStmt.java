@@ -41,7 +41,7 @@ public class CloseRFileStmt implements IStmt
             throw new MyException("closeRFile: IO error while closing file " + sVal.getVal() + ": " + e.getMessage());
         }
         ft.remove(sVal.toString());
-        return state;
+        return null;
     }
     @Override
     public String toString()

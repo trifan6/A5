@@ -52,7 +52,7 @@ public class WriteHeapStmt implements IStmt
         }
 
         heap.update(address, evaluated);
-        return state;
+        return null;
     }
 
     @Override

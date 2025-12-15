@@ -10,6 +10,9 @@ import Model.Values.Value;
 import Repository.IRepository;
 
 import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 
@@ -17,6 +20,7 @@ public class Controller
 {
     private final IRepository repo;
     private boolean displayFlag = true;
+    private ExecutorService executor;
 
     public Controller(IRepository repo)
     {
@@ -28,57 +32,100 @@ public class Controller
         this.displayFlag = v;
     }
 
-    public PrgState oneStep(PrgState prgState) throws MyException
+    public List<PrgState> removeCompletedPrg(List<PrgState> inPrgList)
     {
-        MyIStack<IStmt> stack = prgState.getExeStack();
+        return inPrgList.stream()
+                .filter(p -> p.isNotCompleted())
+                .collect(Collectors.toList());
+    }
 
-        if(stack.isEmpty())
-        {
-            throw new EmptyStackException();
-        }
+    public void oneStepForAll(List<PrgState> prgList) throws InterruptedException
+    {
+        prgList.forEach(prg -> {
+            try {
+                repo.logPrgStateExec(prg);
+            } catch (MyException e) {
+                System.out.println(e.getMessage());
+            }
+        });
 
-        IStmt stmt = stack.pop();
-        return stmt.execute(prgState);
+        List<Callable<PrgState>> callList = prgList.stream()
+                .map((PrgState p) -> (Callable<PrgState>) (() -> {
+                    return p.oneStep();
+                }))
+                .collect(Collectors.toList());
+
+        List<PrgState> newPrgList = executor.invokeAll(callList).stream()
+                .map(future -> {
+                    try {
+                        return future.get();
+                    } catch (Exception e) {
+                        System.out.println(e.getMessage());
+                        return null;
+                    }
+                })
+                .filter(p -> p != null)
+                .collect(Collectors.toList());
+
+        prgList.addAll(newPrgList);
+
+        prgList.forEach(prg -> {
+            try {
+                repo.logPrgStateExec(prg);
+            } catch (MyException e) {
+                System.out.println(e.getMessage());
+            }
+        });
+
+        repo.setPrgList(prgList);
     }
 
     public void allStep() throws MyException
     {
-        PrgState prog = repo.getCrtPrg();
-        repo.logPrgStateExec();
-
-        if(displayFlag)
+        executor = Executors.newFixedThreadPool(2);
+// DEBUG: Print start
+        System.out.println("Starting allStep...");
+        List<PrgState> prgList = removeCompletedPrg(repo.getPrgList());
+// DEBUG: Print initial list size
+        System.out.println("Initial PrgList size: " + prgList.size());
+        while(!prgList.isEmpty())
         {
-            System.out.println("Initial state:\n" + prog.toString());
-        }
+            prgList.get(0).getHeap().setContent(
+                    safeGarbageCollector(
+                            getAddressFromSymTable(
+                                    prgList.stream()
+                                            .flatMap(p->p.getSymTable().getAll().values().stream())
+                                            .collect(Collectors.toList())
+                            ),
+                            prgList.get(0).getHeap().getContent()
+                            )
+                    );
 
-        while(!prog.getExeStack().isEmpty())
-        {
-            oneStep(prog);
-            repo.logPrgStateExec();
-
-            List<Integer> symTableAddress = getAddressFromSymTable(prog.getSymTable().getAll().values());
-            Map<Integer, Value> newHeap = safeGarbageCollector(symTableAddress, prog.getHeap().getContent());
-            prog.getHeap().setContent(newHeap);
-
-            repo.logPrgStateExec();
-
-            if(displayFlag)
+            try
             {
-                System.out.println("After step:\n" + prog.toString());
+                oneStepForAll(prgList);
+            } catch (InterruptedException e) {
+                throw new MyException(e.getMessage());
             }
+
+            prgList = removeCompletedPrg(repo.getPrgList());
+            // DEBUG: Print size after step
+            System.out.println("PrgList size after step: " + prgList.size());
         }
 
-        if(displayFlag)
-        {
-            System.out.println("Final state:\n" + prog.toString());
-        }
+        executor.shutdownNow();
+
+        repo.setPrgList(prgList);
+
+        // DEBUG: Print end
+        System.out.println("allStep finished.");
     }
 
     private List<Integer> getAddressFromSymTable(Collection<Value> symTableValues)
     {
         return symTableValues.stream()
                 .filter(v -> v instanceof RefValue)
-                .map(v -> ((RefValue)v).getAddress())
+                .map(v -> ((RefValue) v).getAddress())
                 .collect(Collectors.toList());
     }
 
@@ -87,24 +134,19 @@ public class Controller
         Set<Integer> reachable = new HashSet<>();
         Deque<Integer> stack = new ArrayDeque<>();
 
-        for(Integer a : symTableAddresses)
-        {
-            if(a != null && a!= 0 && heap.containsKey(a))
-            {
+        for (Integer a : symTableAddresses) {
+            if (a != null && a != 0 && heap.containsKey(a)) {
                 reachable.add(a);
                 stack.push(a);
             }
         }
 
-        while(!stack.isEmpty())
-        {
+        while (!stack.isEmpty()) {
             Integer a = stack.pop();
             Value val = heap.get(a);
-            if(val instanceof RefValue)
-            {
-                int nestedAddr = ((RefValue)val).getAddress();
-                if(nestedAddr != 0 && heap.containsKey(nestedAddr) && !reachable.contains(nestedAddr))
-                {
+            if (val instanceof RefValue) {
+                int nestedAddr = ((RefValue) val).getAddress();
+                if (nestedAddr != 0 && heap.containsKey(nestedAddr) && !reachable.contains(nestedAddr)) {
                     reachable.add(nestedAddr);
                     stack.push(nestedAddr);
                 }

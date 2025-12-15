@@ -44,7 +44,7 @@ public class OpenRFileStmt implements IStmt
         {
             throw new MyException("OpenRFile: IO error: " + svalue.getVal() + ": "  + e.getMessage());
         }
-        return state;
+        return null;
 
     }
 

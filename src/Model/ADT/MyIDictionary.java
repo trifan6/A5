@@ -14,5 +14,7 @@ public interface MyIDictionary<K, V>
 
     void remove(K key);
 
+    MyIDictionary<K, V> deepCopy();
+
     Map<K, V> getAll();
 }

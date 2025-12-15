@@ -38,7 +38,7 @@ public class AssignStmt implements IStmt
         }
 
         symTable.update(id, val);
-        return state;
+        return null;
     }
 
     @Override

@@ -49,7 +49,7 @@ public class NewStmt implements IStmt
 
         symTable.put(this.varName, new RefValue(newAddress, refType.getInner()));
 
-        return state;
+        return null;
     }
 
     @Override

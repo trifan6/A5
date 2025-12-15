@@ -285,6 +285,29 @@ public class Interpreter
         IRepository repo8 = new Repository(prg8, "log8.txt");
         Controller ctr8 = new Controller(repo8);
 
+        IStmt ex9 = new CompStmt(new VarDeclStmt("v", new IntType()),
+                new CompStmt(new VarDeclStmt("a", new RefType(new IntType())),
+        new CompStmt(new AssignStmt("v", new ValueExp(new IntValue(10))),
+        new CompStmt(new NewStmt("a", new ValueExp(new IntValue(22))),
+                new CompStmt(new ForkStmt(new CompStmt(new WriteHeapStmt("a", new ValueExp(new IntValue(30))),
+                        new CompStmt(new AssignStmt("v", new ValueExp(new IntValue(32))),
+                                new CompStmt(new PrintStmt(new VarExp("v")),
+                                        new PrintStmt(new ReadHeapExp(new VarExp("a"))))))),
+                new CompStmt(new PrintStmt(new VarExp("v")),
+                        new PrintStmt(new ReadHeapExp(new VarExp("a")))))
+        ))));
+
+        PrgState prg9  = new PrgState(
+                new MyStack<>(),
+                new MyDictionary<>(),
+                new MyList<>(),
+                new MyTable(),
+                new MyHeap(),
+                ex9
+        );
+        IRepository repo9 = new Repository(prg9, "log9.txt");
+        Controller ctr9 =  new Controller(repo9);
+
         TextMenu menu = new TextMenu();
         menu.addCommand(new ExitCommand("0", "exit"));
         menu.addCommand(new RunExample("1", ex1.toString(), ctr1));
@@ -295,6 +318,7 @@ public class Interpreter
         menu.addCommand(new RunExample("6", ex6.toString(), ctr6));
         menu.addCommand(new RunExample("7", ex7.toString(), ctr7));
         menu.addCommand(new RunExample("8", ex8.toString(), ctr8));
+        menu.addCommand(new RunExample("9", ex9.toString(), ctr9));
 
 
         menu.show();

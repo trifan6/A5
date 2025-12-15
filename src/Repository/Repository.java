@@ -33,19 +33,27 @@ public class Repository implements IRepository
     }
 
     @Override
-    public PrgState getCrtPrg()
+    public List<PrgState> getPrgList()
     {
-        return prgStates.get(0);
+        return prgStates;
     }
 
     @Override
-    public void logPrgStateExec() throws MyException
+    public void setPrgList(List<PrgState> prgState)
+    {
+        this.prgStates.clear();
+        this.prgStates.addAll(prgState);
+    }
+
+    @Override
+    public void logPrgStateExec(PrgState state) throws MyException
     {
         try
         {
             PrintWriter logFile = new PrintWriter(new BufferedWriter(
                     new FileWriter(logFilePath, true)));
-            PrgState state = getCrtPrg();
+
+            logFile.println("Id: "  + state.getId());
 
             logFile.println("ExeStack:");
             MyIStack<IStmt> stack = state.getExeStack();
@@ -78,13 +86,13 @@ public class Repository implements IRepository
             {
                 logFile.println(key + " -> " + state.getHeap().get(key));
             }
+
+            logFile.println("----------------------------------------");
             logFile.close();
         }
         catch (IOException e)
         {
             throw new MyException("Error writing file: " + e.getMessage());
         }
-
-
     }
 }

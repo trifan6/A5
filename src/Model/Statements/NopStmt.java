@@ -13,7 +13,7 @@ public class NopStmt implements IStmt
     @Override
     public String toString()
     {
-        return "nop";
+        return null;
     }
 
     @Override
